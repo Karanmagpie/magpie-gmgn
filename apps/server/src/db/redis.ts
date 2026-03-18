@@ -30,7 +30,26 @@ import { createLogger } from '../utils/logger';
 
 const log = createLogger('redis');
 
-export const redis = new Redis(env.REDIS_URL, {
+// Parse REDIS_URL manually so ioredis always gets explicit host/port/password
+// (ioredis URL parsing can silently drop auth on some Railway URL formats)
+function parseRedisUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parseInt(parsed.port || '6379', 10),
+      username: parsed.username || undefined,
+      password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+      tls: parsed.protocol === 'rediss:' ? {} : undefined,
+    };
+  } catch {
+    // Fallback — let ioredis handle it
+    return url;
+  }
+}
+
+export const redis = new Redis({
+  ...parseRedisUrl(env.REDIS_URL) as any,
   maxRetriesPerRequest: null,  // Required by BullMQ — let BullMQ handle retries
   enableReadyCheck: true,
   retryStrategy(times) {

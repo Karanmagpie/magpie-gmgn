@@ -7,6 +7,6 @@ buildCommand = "npm install"
 # tsx runs TypeScript directly — no compile step needed
 startCommand = "npx tsx apps/server/src/index.ts"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
