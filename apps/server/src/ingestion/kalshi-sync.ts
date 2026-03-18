@@ -126,6 +126,9 @@ async function fetchKalshiMarkets(): Promise<KalshiMarket[]> {
     // Cursor-based pagination: empty cursor means no more pages
     cursor = data.cursor;
     if (!cursor) break;
+
+    // Delay between pages to avoid Kalshi 429 rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   return allMarkets;

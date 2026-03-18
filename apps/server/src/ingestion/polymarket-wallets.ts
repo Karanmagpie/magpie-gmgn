@@ -196,6 +196,18 @@ export async function discoverPolymarketWallets(): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
+    // Backfill wallet_id on existing trades that were inserted before wallets were discovered.
+    // Trades store wallet_address (raw string) but wallet_id (FK) was null when wallets table
+    // was empty. This single UPDATE links all historical trades to their wallet rows.
+    const backfill = await db.query(`
+      UPDATE trades t
+      SET wallet_id = w.id
+      FROM wallets w
+      WHERE t.wallet_address = w.address
+        AND t.wallet_id IS NULL
+    `);
+    log.info({ backfilled: backfill.rowCount }, 'Backfilled wallet_id on existing trades');
+
     const duration = Date.now() - startTime;
     log.info(
       { wallets: upsertedCount, profiles: profilesFetched, durationMs: duration },
