@@ -30,30 +30,24 @@ import { createLogger } from '../utils/logger';
 
 const log = createLogger('redis');
 
-// Parse REDIS_URL manually so ioredis always gets explicit host/port/password
-// (ioredis URL parsing can silently drop auth on some Railway URL formats)
-function parseRedisUrl(url: string) {
-  try {
-    const parsed = new URL(url);
-    return {
-      host: parsed.hostname,
-      port: parseInt(parsed.port || '6379', 10),
-      username: parsed.username || undefined,
-      password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
-      tls: parsed.protocol === 'rediss:' ? {} : undefined,
-    };
-  } catch {
-    // Fallback — let ioredis handle it
-    return url;
-  }
+// Parse REDIS_URL to get connection details
+// Also accepts REDIS_PASSWORD as an explicit override (for Railway compatibility)
+function buildRedisOptions() {
+  const url = new URL(env.REDIS_URL);
+  const password = env.REDIS_PASSWORD || (url.password ? decodeURIComponent(url.password) : undefined);
+  return {
+    host: url.hostname,
+    port: parseInt(url.port || '6379', 10),
+    password,
+    tls: url.protocol === 'rediss:' ? {} as any : undefined,
+  };
 }
 
 export const redis = new Redis({
-  ...parseRedisUrl(env.REDIS_URL) as any,
+  ...buildRedisOptions(),
   maxRetriesPerRequest: null,  // Required by BullMQ — let BullMQ handle retries
   enableReadyCheck: true,
   retryStrategy(times) {
-    // Reconnect with exponential backoff: 50ms, 100ms, 200ms... max 30s
     const delay = Math.min(times * 50, 30000);
     log.warn({ attempt: times, delay }, 'Redis reconnecting...');
     return delay;

@@ -31,6 +31,7 @@ export const env = {
   // Database
   DATABASE_URL: requireEnv('DATABASE_URL'),
   REDIS_URL: requireEnv('REDIS_URL'),
+  REDIS_PASSWORD: optionalEnv('REDIS_PASSWORD', ''),
 
   // Polygon blockchain RPC for on-chain indexing
   POLYGON_RPC_URL: optionalEnv('POLYGON_RPC_URL', 'https://polygon-rpc.com'),
