@@ -73,8 +73,15 @@ export async function runMigration(): Promise<void> {
     // at once (which caused deadlocks when stale connections existed).
     const statements = sql
       .split(';')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--'));
+      .map((s) => {
+        // Strip leading comment lines so statements like "-- comment\nCREATE TABLE..."
+        // don't get filtered out (the comment is not the statement)
+        return s.split('\n')
+          .filter((line) => !line.trim().startsWith('--'))
+          .join('\n')
+          .trim();
+      })
+      .filter((s) => s.length > 0);
 
     for (const stmt of statements) {
       try {
