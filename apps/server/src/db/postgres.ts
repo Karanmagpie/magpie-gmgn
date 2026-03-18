@@ -27,7 +27,6 @@ export const db = new Pool({
   max: 5,                   // max 5 simultaneous connections
   idleTimeoutMillis: 30000, // close idle connections after 30s
   connectionTimeoutMillis: 10000, // 10s timeout for Railway cold starts
-  ssl: env.DATABASE_URL.includes('railway.internal') ? false : { rejectUnauthorized: false },
 });
 
 // Log when pool connects and errors

@@ -536,13 +536,6 @@ async function main(): Promise<void> {
   // This is needed because top traders made money on 2024 election markets
   // which are now closed — without them, trade enrichment can't link trades.
   // The function checks internally if it already ran (>1000 resolved markets).
-  log.info('Checking if closed market backfill is needed...');
-  try {
-    await syncClosedMarkets();
-  } catch (err) {
-    log.warn({ err }, 'Closed market backfill failed (will work with existing data)');
-  }
-
   // ---- Step 6: Run Initial Sync ----
   // Kick off the first sync immediately (don't wait for BullMQ schedule).
   // This populates the database with markets, wallets, and trades
@@ -576,6 +569,13 @@ async function main(): Promise<void> {
   // Don't wait for wallet discovery — it takes ~2 minutes
   discoverPolymarketWallets().catch((err) => {
     log.warn({ err }, 'Initial wallet discovery failed (will retry on schedule)');
+  });
+
+  // Closed market backfill runs non-blocking — can take many minutes fetching
+  // historical markets. Must NOT block wallet discovery or initial sync.
+  log.info('Checking if closed market backfill is needed...');
+  syncClosedMarkets().catch((err) => {
+    log.warn({ err }, 'Closed market backfill failed (will work with existing data)');
   });
 
   // ---- Step 6: Phase 2 Intelligence Layer ----
