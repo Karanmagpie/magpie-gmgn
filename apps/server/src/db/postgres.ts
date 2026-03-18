@@ -23,10 +23,11 @@ const log = createLogger('postgres');
 
 export const db = new Pool({
   connectionString: env.DATABASE_URL,
-  // Pool configuration for scalability
-  max: 20,                  // max 20 simultaneous connections
+  // Reduced pool size for Railway free tier (1GB memory limit)
+  max: 5,                   // max 5 simultaneous connections
   idleTimeoutMillis: 30000, // close idle connections after 30s
-  connectionTimeoutMillis: 5000, // fail fast if can't connect in 5s
+  connectionTimeoutMillis: 10000, // 10s timeout for Railway cold starts
+  ssl: env.DATABASE_URL.includes('railway.internal') ? false : { rejectUnauthorized: false },
 });
 
 // Log when pool connects and errors
