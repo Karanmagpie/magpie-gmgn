@@ -132,7 +132,9 @@ async function insertTrade(trade: any, walletAddress: string): Promise<boolean> 
         $4, $5, $6, $7, $8, $9,
         $10, to_timestamp($11)
       )
-      ON CONFLICT DO NOTHING`,
+      ON CONFLICT (tx_hash) WHERE tx_hash IS NOT NULL DO UPDATE SET
+        market_id = COALESCE(EXCLUDED.market_id, trades.market_id),
+        wallet_id = COALESCE(EXCLUDED.wallet_id, trades.wallet_id)`,
       [
         marketId,
         walletId,
@@ -149,7 +151,7 @@ async function insertTrade(trade: any, walletAddress: string): Promise<boolean> 
     );
     return true;
   } catch {
-    // Skip duplicate tx_hash or other constraint violations
+    // Skip other constraint violations
     return false;
   }
 }

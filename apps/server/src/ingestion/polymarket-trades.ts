@@ -225,10 +225,19 @@ export async function ingestPolymarketTrades(): Promise<void> {
       const txHash = trade.transactionHash || null;
       if (txHash) {
         const existing = await db.query(
-          'SELECT 1 FROM trades WHERE tx_hash = $1 LIMIT 1',
+          'SELECT id, market_id FROM trades WHERE tx_hash = $1 LIMIT 1',
           [txHash]
         );
-        if (existing.rows.length > 0) continue; // Already ingested this trade
+        if (existing.rows.length > 0) {
+          // Trade already exists — backfill market_id if it was null before
+          if (!existing.rows[0].market_id && marketId) {
+            await db.query(
+              'UPDATE trades SET market_id = $1 WHERE tx_hash = $2 AND market_id IS NULL',
+              [marketId, txHash]
+            );
+          }
+          continue;
+        }
       }
 
       const result = await db.query(
