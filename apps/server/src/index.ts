@@ -127,6 +127,7 @@ const positionSyncQueue = new Queue('position-sync', { connection: bullmqConnect
 const smartScoreQueue = new Queue('smart-score', { connection: bullmqConnection });
 const safetyScoreQueue = new Queue('safety-score', { connection: bullmqConnection });
 const consensusQueue = new Queue('consensus', { connection: bullmqConnection });
+const closedMarketBackfillQueue = new Queue('closed-market-backfill', { connection: bullmqConnection });
 
 // ---- Workers ----
 // Workers are stored so we can gracefully close them on shutdown.
@@ -285,11 +286,34 @@ async function setupWorkers(): Promise<void> {
     { connection: bullmqConnection, concurrency: 1 }
   );
 
+  // Closed market backfill — runs every 6 hours, low priority.
+  // Uses 2s delays between pages so it doesn't spike memory like it did at startup.
+  const closedMarketBackfillWorker = new Worker(
+    'closed-market-backfill',
+    async () => {
+      log.info('Running closed market backfill...');
+      await syncClosedMarkets();
+    },
+    { connection: bullmqConnection, concurrency: 1 }
+  );
+
+  await closedMarketBackfillQueue.add(
+    'backfill-closed-markets',
+    {},
+    {
+      repeat: { every: 6 * 60 * 60 * 1000 }, // every 6 hours
+      jobId: 'recurring-closed-market-backfill',
+      removeOnComplete: { count: 3 },
+      removeOnFail: { count: 5 },
+      attempts: 1, // don't retry — it's a long job
+    }
+  );
+
   // Store workers for cleanup
   workers.push(
     marketSyncWorker, tradeSyncWorker, walletSyncWorker, marketMatchWorker,
     walletEnrichmentWorker, positionSyncWorker, smartScoreWorker,
-    safetyScoreWorker, consensusWorker
+    safetyScoreWorker, consensusWorker, closedMarketBackfillWorker
   );
 
   // Set up error handlers for all workers
@@ -559,12 +583,9 @@ async function main(): Promise<void> {
     log.warn({ err }, 'Initial wallet discovery failed (will retry on schedule)');
   });
 
-  // Closed market backfill runs non-blocking — can take many minutes fetching
-  // historical markets. Must NOT block wallet discovery or initial sync.
-  log.info('Checking if closed market backfill is needed...');
-  syncClosedMarkets().catch((err) => {
-    log.warn({ err }, 'Closed market backfill failed (will work with existing data)');
-  });
+  // Closed market backfill DISABLED on startup — takes 4+ hours on Railway
+  // and causes OOM by keeping constant memory pressure during other syncs.
+  // TODO: run this as a separate one-off Railway job or a low-priority BullMQ job.
 
   // ---- Step 6: Phase 2 Intelligence Layer ----
   // Kick off initial enrichment (non-blocking).
@@ -643,6 +664,7 @@ async function shutdown(signal: string): Promise<void> {
     await smartScoreQueue.close();
     await safetyScoreQueue.close();
     await consensusQueue.close();
+    await closedMarketBackfillQueue.close();
     // Close HTTP API server
     if (httpServer) {
       httpServer.close();

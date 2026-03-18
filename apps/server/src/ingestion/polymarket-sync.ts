@@ -48,34 +48,8 @@ const log = createLogger('polymarket-sync');
  *   }
  * ]
  */
-async function fetchEvents(): Promise<PolymarketGammaEvent[]> {
-  const allEvents: PolymarketGammaEvent[] = [];
-  let offset = 0;
-  const limit = 100; // Gamma API max per page
-
-  while (true) {
-    const url = `${env.POLYMARKET_GAMMA_API}/events?active=true&closed=false&limit=${limit}&offset=${offset}`;
-    log.debug({ url, offset }, 'Fetching events page');
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
-    }
-
-    const events = (await response.json()) as PolymarketGammaEvent[];
-
-    if (events.length === 0) break; // No more pages
-
-    allEvents.push(...events);
-    offset += limit;
-
-    // Safety: don't fetch more than 50,000 events (currently ~7,500 active)
-    if (offset > 50000) break;
-  }
-
-  return allEvents;
-}
+// fetchEvents removed — syncPolymarketMarkets now processes pages inline
+// to avoid accumulating all events in memory at once.
 
 /**
  * Maps a Polymarket category string to our normalized categories.
@@ -263,8 +237,8 @@ export async function syncClosedMarkets(): Promise<void> {
       }
       if (offset > 300000) break;
 
-      // Small delay to avoid hammering API
-      await new Promise(r => setTimeout(r, 50));
+      // 2s delay between pages — gives GC time to free memory between large JSON responses
+      await new Promise(r => setTimeout(r, 2000));
     } catch (err) {
       log.warn({ err, offset }, 'Error during closed market sync, continuing');
       offset += limit;
@@ -292,41 +266,51 @@ export async function syncPolymarketMarkets(): Promise<void> {
   const startTime = Date.now();
 
   try {
-    const events = await fetchEvents();
-
+    let offset = 0;
+    const limit = 100;
     let marketCount = 0;
     let newCount = 0;
+    let pageEventCount = 0;
 
-    for (const event of events) {
-      if (!event.markets) continue;
+    // Process one page at a time — never hold all events in memory.
+    // Previously fetchEvents() accumulated all events before returning, causing OOM.
+    while (true) {
+      const url = `${env.POLYMARKET_GAMMA_API}/events?active=true&closed=false&limit=${limit}&offset=${offset}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
 
-      for (const market of event.markets) {
-        if (!market.conditionId) continue;
+      const events = (await response.json()) as PolymarketGammaEvent[];
+      if (events.length === 0) break;
 
-        // Check if this market already exists
-        const existing = await db.query(
-          'SELECT id FROM markets WHERE platform = $1 AND platform_id = $2',
-          ['polymarket', market.conditionId]
-        );
+      pageEventCount += events.length;
 
-        if (existing.rows.length === 0) newCount++;
+      for (const event of events) {
+        if (!event.markets) continue;
+        const eventCat = event.category || event.tags?.map((t: any) => t.label).join(' ') || '';
 
-        // Extract category from event tags or market category
-        const eventCat = event.category
-          || event.tags?.map((t) => t.label).join(' ')
-          || '';
-        await upsertMarket(market, eventCat);
-        marketCount++;
+        for (const market of event.markets) {
+          if (!market.conditionId) continue;
+          const existing = await db.query(
+            'SELECT id FROM markets WHERE platform = $1 AND platform_id = $2',
+            ['polymarket', market.conditionId]
+          );
+          if (existing.rows.length === 0) newCount++;
+          await upsertMarket(market, eventCat);
+          marketCount++;
+        }
       }
+
+      offset += limit;
+      if (offset > 50000) break;
     }
 
     const duration = Date.now() - startTime;
     log.info(
-      { events: events.length, markets: marketCount, new: newCount, durationMs: duration },
+      { events: pageEventCount, markets: marketCount, new: newCount, durationMs: duration },
       'Polymarket market sync complete'
     );
   } catch (err) {
     log.error({ err }, 'Polymarket market sync failed');
-    throw err; // Let BullMQ handle retry
+    throw err;
   }
 }
