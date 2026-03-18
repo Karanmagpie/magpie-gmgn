@@ -1,8 +1,10 @@
 [build]
 builder = "nixpacks"
+# Only install deps — no build step needed since we run with tsx directly
+buildCommand = "npm install"
 
 [deploy]
-# Run server directly with tsx (handles TypeScript + workspace imports without a compile step)
+# tsx runs TypeScript directly — no compile step needed
 startCommand = "npx tsx apps/server/src/index.ts"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
