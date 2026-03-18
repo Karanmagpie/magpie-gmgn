@@ -35,6 +35,18 @@ const log = createLogger('redis');
 function buildRedisOptions() {
   const url = new URL(env.REDIS_URL);
   const password = env.REDIS_PASSWORD || (url.password ? decodeURIComponent(url.password) : undefined);
+
+  // Debug log — masked password so it's safe to print
+  log.info({
+    host: url.hostname,
+    port: url.port || '6379',
+    protocol: url.protocol,
+    hasPassword: !!password,
+    passwordLength: password?.length ?? 0,
+    hasRedisPasswordEnv: !!env.REDIS_PASSWORD,
+    rawUrlPrefix: env.REDIS_URL.substring(0, 20) + '...',
+  }, 'Redis connection config');
+
   return {
     host: url.hostname,
     port: parseInt(url.port || '6379', 10),
