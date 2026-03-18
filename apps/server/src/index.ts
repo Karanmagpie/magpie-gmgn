@@ -543,28 +543,16 @@ async function main(): Promise<void> {
   log.info('Running initial data sync...');
 
   // Run initial syncs in parallel (fail gracefully — don't crash server)
-  const initialSyncs = await Promise.allSettled([
-    syncPolymarketMarkets(),
-    syncKalshiMarkets(),
-  ]);
-
-  for (const result of initialSyncs) {
-    if (result.status === 'rejected') {
-      log.warn({ err: result.reason }, 'Initial market sync failed (will retry on schedule)');
-    }
-  }
-
-  // Now that markets are synced (token_ids populated), subscribe WebSocket
-  // The initial WS connection happens before market sync, so token_ids
-  // weren't available yet. Re-subscribe now with actual token IDs.
-  subscribeToMarkets().catch((err) => {
-    log.warn({ err }, 'WebSocket re-subscribe after market sync failed');
-  });
-
-  // Run trade ingestion and wallet discovery after markets are synced
-  ingestPolymarketTrades().catch((err) => {
-    log.warn({ err }, 'Initial trade ingestion failed (will retry on schedule)');
-  });
+  // Run Polymarket sync first (non-blocking), then wallet discovery after.
+  // Kalshi sync intentionally excluded from startup — it pages through 178K markets
+  // and caused OOM crashes when run simultaneously with Polymarket sync.
+  // BullMQ will run the first Kalshi sync within 5 minutes on schedule.
+  syncPolymarketMarkets()
+    .then(() => subscribeToMarkets())
+    .then(() => ingestPolymarketTrades())
+    .catch((err) => {
+      log.warn({ err }, 'Initial Polymarket sync failed (will retry on schedule)');
+    });
 
   // Don't wait for wallet discovery — it takes ~2 minutes
   discoverPolymarketWallets().catch((err) => {

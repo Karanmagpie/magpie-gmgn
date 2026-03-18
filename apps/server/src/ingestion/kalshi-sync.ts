@@ -92,47 +92,8 @@ interface KalshiMarket {
  * A "yes_bid" of 35 means the YES token costs $0.35.
  * We convert to decimal (0-1) to match our unified schema.
  */
-async function fetchKalshiMarkets(): Promise<KalshiMarket[]> {
-  const allMarkets: KalshiMarket[] = [];
-  let cursor: string | undefined;
-
-  while (true) {
-    // Build URL with query parameters
-    // status=open: only fetch active markets (not settled/closed)
-    // limit=200: max per page (Kalshi's maximum)
-    let url = `${env.KALSHI_API}/markets?limit=200&status=open`;
-
-    if (cursor) {
-      url += `&cursor=${cursor}`;
-    }
-
-    log.debug({ url }, 'Fetching Kalshi markets page');
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Kalshi API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as any;
-
-    // Kalshi wraps markets in a "markets" array
-    const markets: KalshiMarket[] = data.markets || [];
-
-    if (markets.length === 0) break;
-
-    allMarkets.push(...markets);
-
-    // Cursor-based pagination: empty cursor means no more pages
-    cursor = data.cursor;
-    if (!cursor) break;
-
-    // Delay between pages to avoid Kalshi 429 rate limiting
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-
-  return allMarkets;
-}
+// fetchKalshiMarkets removed — syncKalshiMarkets now processes pages inline
+// to avoid loading 178K+ market objects into memory all at once (caused OOM crash).
 
 /**
  * Maps Kalshi categories to our unified category system.
@@ -261,27 +222,47 @@ export async function syncKalshiMarkets(): Promise<void> {
   const startTime = Date.now();
 
   try {
-    const markets = await fetchKalshiMarkets();
-
+    let cursor: string | undefined;
     let newCount = 0;
     let updatedCount = 0;
+    let totalCount = 0;
 
-    for (const market of markets) {
-      const { isNew } = await upsertMarket(market);
-      if (isNew) {
-        newCount++;
-      } else {
-        updatedCount++;
+    // Process one page at a time — never hold more than 200 markets in memory.
+    // Previously we accumulated all 178K markets before upserting, causing OOM.
+    while (true) {
+      let url = `${env.KALSHI_API}/markets?limit=200&status=open`;
+      if (cursor) url += `&cursor=${cursor}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Kalshi API error: ${response.status} ${response.statusText}`);
       }
+
+      const data = (await response.json()) as any;
+      const markets: KalshiMarket[] = data.markets || [];
+      if (markets.length === 0) break;
+
+      // Upsert this page immediately — don't accumulate
+      for (const market of markets) {
+        const { isNew } = await upsertMarket(market);
+        if (isNew) newCount++; else updatedCount++;
+      }
+      totalCount += markets.length;
+
+      cursor = data.cursor;
+      if (!cursor) break;
+
+      // 500ms delay between pages to avoid Kalshi 429 rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     const duration = Date.now() - startTime;
     log.info(
-      { total: markets.length, new: newCount, updated: updatedCount, durationMs: duration },
+      { total: totalCount, new: newCount, updated: updatedCount, durationMs: duration },
       'Kalshi market sync complete'
     );
   } catch (err) {
     log.error({ err }, 'Kalshi market sync failed');
-    throw err; // BullMQ handles retry
+    throw err;
   }
 }
