@@ -1,0 +1,3 @@
+[phases.build]
+# No build step needed — server runs directly with tsx
+cmds = []

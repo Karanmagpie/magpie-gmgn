@@ -10,7 +10,7 @@
   "scripts": {
     "dev:server": "npm run dev --workspace=apps/server",
     "dev:web": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/server",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d"
