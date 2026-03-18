@@ -50,6 +50,7 @@ function buildRedisOptions() {
   return {
     host: url.hostname,
     port: parseInt(url.port || '6379', 10),
+    username: url.username || 'default',
     password,
     tls: url.protocol === 'rediss:' ? {} as any : undefined,
   };

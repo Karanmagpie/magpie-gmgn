@@ -101,9 +101,13 @@ const log = createLogger('server');
 // because BullMQ creates its own dedicated connections internally.
 // This is a BullMQ requirement — each Queue and Worker needs its
 // own connection to avoid blocking issues with Redis pub/sub.
+const _bullmqUrl = new URL(env.REDIS_URL);
 const bullmqConnection = {
-  host: new URL(env.REDIS_URL).hostname || 'localhost',
-  port: parseInt(new URL(env.REDIS_URL).port || '6379', 10),
+  host: _bullmqUrl.hostname || 'localhost',
+  port: parseInt(_bullmqUrl.port || '6379', 10),
+  username: _bullmqUrl.username || 'default',
+  password: env.REDIS_PASSWORD || (_bullmqUrl.password ? decodeURIComponent(_bullmqUrl.password) : undefined),
+  tls: _bullmqUrl.protocol === 'rediss:' ? {} : undefined,
   maxRetriesPerRequest: null, // Required by BullMQ
 };
 
