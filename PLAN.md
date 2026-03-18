@@ -9,7 +9,7 @@ Just like GMGN helps retail traders see what whales are doing on PumpFun/Raydium
 ---
 
 ## The GMGN → MarkyPie Feature Map
-
+ 
 ```
 GMGN (Memecoins)                    MarkyPie (Prediction Markets)
 ────────────────                    ─────────────────────────────
