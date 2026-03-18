@@ -1,0 +1,404 @@
+# MarkyPie — GMGN for Prediction Markets
+
+**GMGN.ai tracks smart money for memecoins. MarkyPie does the same for prediction markets.**
+
+---
+
+## 1. Problem Statement
+
+Prediction markets are booming — $21.5B traded on Polymarket and $22.8B on Kalshi in 2025 — but retail traders face critical disadvantages:
+
+**1. Information Asymmetry**
+Whales and insiders take positions before news breaks. On Polymarket, wallets quietly accumulate $100K+ positions while retail has no visibility. There is no tool that tracks smart money across prediction markets the way GMGN does for memecoins.
+
+**2. Fragmented Ecosystem**
+Polymarket (on-chain, USDC, Polygon) and Kalshi (centralized, USD, CFTC-regulated) are completely separate platforms with no unified view. The same question — "Will the Fed cut rates in March?" — lives on both platforms at different prices, and users have no easy way to compare or exploit the gap.
+
+**3. No Market Quality Signals**
+GMGN flags rug pulls and honeypots for memecoins. Prediction markets have their own risks — low liquidity traps, ambiguous resolution criteria, oracle manipulation, whale concentration — but no standardized safety scoring exists.
+
+**4. Manual Research Overload**
+170+ fragmented tools exist (PolyTrack, Hashdive, Polysights, Unusual Predictions, etc.) but none combine smart money tracking + copy trading + safety scoring + cross-platform aggregation + alerts into a single product.
+
+---
+
+## 2. Solution
+
+**MarkyPie** is a unified prediction market intelligence platform that brings GMGN-level analytics and tools to Polymarket and Kalshi:
+
+| What GMGN Does (Memecoins) | What MarkyPie Does (Prediction Markets) |
+|---|---|
+| Tracks whale wallets on Solana/ETH | Tracks whale wallets on Polymarket + large trades on Kalshi |
+| Scans new tokens on PumpFun | Scans new markets on Polymarket/Kalshi |
+| Token security analysis (rug pull checks) | Market Safety Score (liquidity, oracle risk, manipulation) |
+| Copy trading (mirror whale buys) | Copy trading on Polymarket (mirror whale positions) |
+| Real-time whale alerts | Smart money alerts (whale entries, price spikes, arbitrage) |
+| Holder analysis | Position analysis (who holds YES/NO, whale concentration) |
+| Leaderboard (top profitable traders) | Cross-platform leaderboard (top traders across both platforms) |
+| Cross-chain (Solana + ETH + BSC) | Cross-platform (Polymarket + Kalshi + future platforms) |
+
+**New features GMGN doesn't have:**
+- **Cross-platform arbitrage detection** — Same question priced differently on Polymarket vs Kalshi? Instant alert
+- **Market Safety Score** — 0-100 composite risk rating for every market (no equivalent exists for memecoins or prediction markets)
+- **Smart vs Retail divergence** — See when smart money disagrees with retail sentiment on a specific market
+
+---
+
+## 3. Revenue Model
+
+| Tier | Price | Features |
+|---|---|---|
+| **Free** | $0 | Dashboard, top 10 whale feed, basic market data, 3 alert configs |
+| **Pro** | $29/mo | Full whale feed, unlimited alerts, Smart Scores, 10 wallet follows |
+| **Premium** | $79/mo | Copy trading, arbitrage scanner, Telegram bot, API access, Market Safety Scores |
+| **API Access** | $199/mo | Full data API for algorithmic traders and researchers |
+| **Referral Fees** | Commission | Earn commission when users trade on Polymarket via referral links |
+
+**Revenue timeline:** Free tier at launch → Pro (Month 2) → Premium (Month 3) → API (Month 4)
+
+---
+
+## 4. MVP — Initial Phase Plan
+
+### 4.1 Data Ingestion Engine
+
+The backbone of MarkyPie — syncs market data, trades, and wallet activity from both platforms in real-time.
+
+**Polymarket Sync (Primary):**
+- Gamma API — Market discovery, metadata, events (polled every 5 min)
+- Data API — Trades, positions, leaderboard, wallet activity (polled every 1 min for active wallets)
+- CLOB WebSocket — Real-time order book updates, price changes, live trades
+- On-Chain Indexer — Polygon RPC listening to CTF Exchange `OrderFilled` and `OrdersMatched` events for instant whale detection
+
+**Kalshi Sync (Secondary):**
+- REST API — Markets, events, anonymous trade history (polled every 5 min)
+- WebSocket — Real-time ticker, trade feed, orderbook deltas
+
+**Unified Data Normalizer:**
+- Normalizes markets from both platforms into a single schema
+- Fuzzy-matches equivalent markets across Polymarket and Kalshi (e.g., "Fed cuts March 2026?" exists on both)
+- Normalizes prices, volumes, timestamps
+- Detects cross-platform arbitrage opportunities (price spread > 2%)
+
+**Storage:**
+- PostgreSQL 16 — Markets, wallets, trades, positions, scores (durable)
+- Redis 7 — Live whale feed, market prices, leaderboard sorted sets, rate limiting, caching
+
+---
+
+### 4.2 Smart Money Engine
+
+The intelligence layer that scores wallets and markets.
+
+**Smart Score (-100 to +100):**
+
+Every tracked Polymarket wallet gets a Smart Score based on:
+
+| Component | Weight | What It Measures |
+|---|---|---|
+| Win Rate | 40% | Winning markets / total markets (adjusted for market difficulty — winning a 30% market = high skill, winning a 90% market = low skill) |
+| ROI | 30% | Annualized return on capital deployed, compared to platform average |
+| Consistency (Sharpe) | 20% | Sharpe ratio of returns — separates consistent winners from one-time lucky bets |
+| Volume | 10% | Higher volume = more data points = more confidence in the score |
+
+**Tags:** Elite Trader (80-100), Smart Money (60-79), Skilled Trader (40-59), Active Trader (0-39), Losing Trader (<0)
+
+**Market Safety Score (0-100):**
+
+Every market gets a safety rating across 4 components:
+
+| Component | Points | What It Measures |
+|---|---|---|
+| Liquidity Health | 0-25 | Bid-ask spread, order book depth, volume-to-liquidity ratio, exit slippage |
+| Resolution Integrity | 0-25 | Clarity of resolution criteria, data source reliability, oracle dispute history |
+| Manipulation Risk | 0-25 | Whale concentration, suspicious new wallets, coordinated wallet clusters, single-sided volume anomalies |
+| Structural Risk | 0-25 | Time to resolution, market creator reputation, similar market resolution history |
+
+**Rating:** Very Safe (90-100), Moderate (60-89), Risky (40-59), Dangerous (0-39)
+
+**Additional Intelligence:**
+- Whale trade detection — Flags trades > $10K, classifies whale vs retail
+- Smart money consensus — Per market: what % of smart money is YES vs NO
+- Category expertise — Per wallet: performance breakdown by politics, economics, sports, crypto
+- Arbitrage detection — Compares matched markets, flags spreads > 2%
+
+---
+
+### 4.3 Frontend Features
+
+**Tech:** Next.js 15 + React 19, Tailwind CSS 4 (dark trading-terminal theme), TradingView Lightweight Charts v5
+
+---
+
+#### 4.3.1 Dashboard Page (`/`)
+
+The home screen — a real-time command center for prediction market activity.
+
+**Sections:**
+
+1. **Live Whale Feed** (top of page, auto-updating via WebSocket)
+   - Streams whale trades as they happen
+   - Each entry shows: wallet pseudonym/address, action (BUY/SELL), outcome (YES/NO), market title, size ($), price, Smart Score, Win Rate, time ago
+   - Color-coded: green for BUY, red for SELL
+   - Clickable → links to wallet profile and market detail
+
+2. **Trending Markets**
+   - Top markets by volume/activity in last 24h
+   - Each card shows: title, YES/NO prices with % change, total volume, Safety Score, whale activity summary ("3 whales entered today")
+   - Clickable → market detail page
+
+3. **New Markets**
+   - Recently created markets on Polymarket/Kalshi
+   - Shows: title, creation time, initial volume, Safety Score
+   - Helps users get in early on high-potential markets
+
+4. **Arbitrage Opportunities**
+   - Markets with price discrepancies across Polymarket vs Kalshi
+   - Shows: question, YES price on each platform, spread in cents
+   - Sorted by largest spread
+
+5. **Mini Leaderboard**
+   - Top 10 traders by Smart Score
+   - Shows: rank, pseudonym, Smart Score, 30d PnL, Win Rate, Volume
+   - "View Full Leaderboard" link
+
+---
+
+#### 4.3.2 Whale Feed
+
+A dedicated, full-screen real-time feed of all whale trades across Polymarket.
+
+**Features:**
+- WebSocket-powered — new trades appear instantly without refresh
+- Filterable by: minimum trade size ($10K, $25K, $50K, $100K+), category (politics, economics, sports, crypto), Smart Score range
+- Each whale trade card shows:
+  - Wallet info (pseudonym, address, Smart Score badge, Win Rate)
+  - Trade details (market title, BUY/SELL, YES/NO, size in $, price)
+  - Market context (current odds, Safety Score, whale count in this market)
+  - Timestamp
+- Click wallet → wallet profile page
+- Click market → market detail page
+- Historical whale feed (scrollback) stored in Redis list (last 100) + PostgreSQL (all)
+
+---
+
+#### 4.3.3 Market Detail Page (`/market/:id`)
+
+Deep dive into a single prediction market.
+
+**Header:**
+- Market question title
+- Platform badge (Polymarket / Kalshi / Both)
+- Category tag, end date
+- Current YES/NO prices with large font, % change indicators
+
+**Safety Score Banner:**
+- Visual 0-100 score with color coding
+- Breakdown bar: Liquidity (x/25), Resolution (x/25), Manipulation (x/25), Structural (x/25)
+- Expandable details explaining each component
+
+**Odds Chart:**
+- TradingView Lightweight Charts v5 area chart
+- Historical YES price over time (1D, 7D, 30D, ALL timeframes)
+- Whale trade markers overlaid on chart (icons showing where whales bought/sold)
+- Hover to see trade details
+
+**Whale Positions Panel:**
+- Table of all tracked whale positions in this market
+- Columns: wallet (pseudonym/address), Smart Score, side (YES/NO), size (shares), entry price, unrealized PnL
+- Sorted by Smart Score
+- Clickable → wallet profile
+
+**Smart Money Consensus:**
+- Visual bar showing Smart Money YES % vs NO %
+- Dollar amounts accumulated by smart money on each side
+- Comparison with retail sentiment (smart vs retail divergence)
+- E.g., "Smart money: 68% YES. Retail: 55% YES. Smart money diverges +13% bullish."
+
+**Cross-Platform Comparison (if matched market exists):**
+- Shows equivalent market on the other platform
+- Side-by-side: Polymarket YES price vs Kalshi YES price
+- Spread in cents
+- "This market is 3¢ cheaper on Polymarket"
+
+---
+
+#### 4.3.4 Wallet Profile (`/wallet/:address`)
+
+Full profile of a tracked Polymarket wallet.
+
+**Header:**
+- Pseudonym, wallet address, verified badge, X/Twitter handle
+- Large Smart Score display (color-coded badge: Elite/Smart Money/Skilled/Active/Losing)
+
+**Stats Panel:**
+- 30d PnL, Total Volume, Win Rate, Markets Traded, Average Position Size, Sharpe Ratio
+- Toggle between 7d / 30d / 90d / All time
+
+**Category Expertise:**
+- Horizontal bar chart showing performance by category
+- E.g., Politics: 89%, Economics: 78%, Crypto: 76%, Sports: 55%
+- Helps users decide which categories to copy-trade
+
+**Action Buttons:**
+- "Follow Wallet" → Add to watch list, get alerts on new trades
+- "Copy Trade" → Opens copy trade configuration panel
+
+**Current Positions Table:**
+- All open positions for this wallet
+- Columns: Market title, Side (YES/NO), Size ($), Entry Price, Current Price, Unrealized PnL, Unrealized PnL %
+- Clickable → market detail page
+
+**Recent Trades Table:**
+- Chronological trade history
+- Columns: Time, Market, Action (BUY/SELL YES/NO), Size ($), Price
+- Paginated with infinite scroll
+
+---
+
+#### 4.3.5 Copy Trading Panel (`/copy-trade`)
+
+Configure and manage automated copy trading of whale wallets.
+
+**Note:** Copy trading only works on Polymarket (on-chain, wallet-level trade execution via CLOB API). Kalshi does not support this due to anonymous centralized architecture.
+
+**Top Traders to Copy:**
+- List of highest Smart Score wallets
+- Each shows: pseudonym, Smart Score, 30d PnL, Win Rate, Volume
+- "COPY" button next to each
+
+**Copy Trade Configuration Form:**
+- Target wallet selector (search by pseudonym or address)
+- Sizing mode: Fixed Amount ($X per trade) or Proportional (X% of target's size)
+- Amount per trade (USDC)
+- Max per market (USDC) — caps exposure to a single market
+- Minimum Market Safety Score filter (slider 0-100) — skip markets below threshold
+- Category filter (checkboxes: Politics, Economics, Crypto, Sports, etc.)
+- "Start Copy Trading" button
+
+**Active Copy Trades:**
+- List of all active copy trade configs
+- Shows: target wallet, since when, trades copied count, PnL, status (Active/Paused)
+- "Pause" and "Stop" buttons
+- Execution log — every trade that was copied, with details and status (pending/executed/failed)
+
+**Requirements for copy trading:**
+- User must connect their Polymarket wallet
+- User must have USDC balance on Polymarket
+- Trades executed via Polymarket CLOB API using `@polymarket/clob-client`
+
+---
+
+#### 4.3.6 Alerts Panel (`/alerts`)
+
+Configure real-time notifications for prediction market activity.
+
+**Alert Types:**
+
+| Alert Type | Trigger | Example |
+|---|---|---|
+| Whale Trade | A tracked whale makes a trade above threshold | "@PolyWhale just bought $45K YES on 'Fed cuts March 2026' at $0.22" |
+| New Market | A new market is created matching your categories | "New market: 'Oscar Best Picture 2026' — just created on Polymarket" |
+| Price Movement | YES/NO price moves more than X% in Y hours | "'BTC > $200K' YES price dropped 8% in 2 hours" |
+| Arbitrage | Cross-platform price spread detected above threshold | "'Fed cuts March' — Polymarket $0.22, Kalshi $0.25, 3¢ spread" |
+| Wallet Activity | A specific followed wallet makes any trade | "0x7f3a.. just entered a new market: 'Trump wins 2028'" |
+
+**Configuration:**
+- Per-alert settings: thresholds, categories, specific wallets, specific markets
+- Delivery method: Web (push via WebSocket) / Telegram / Both
+- Telegram integration: connect via bot, receive alerts in DM or group
+- Max 3 alert configs on Free tier, unlimited on Pro
+
+**Alert History:**
+- Chronological log of all triggered alerts
+- Filterable by type
+
+---
+
+#### 4.3.7 Leaderboard (`/leaderboard`)
+
+Full leaderboard of tracked prediction market traders.
+
+**Default View:**
+- Table ranked by Smart Score
+- Columns: Rank, Trader (pseudonym/address), Smart Score, 30d PnL, Win Rate, Total Volume, Markets, Best Category
+
+**Filters:**
+- Time period: 7d, 30d, 90d, All time
+- Category: All, Politics, Economics, Sports, Crypto
+- Sort by: Smart Score, PnL, Win Rate, Volume
+
+**Leaderboard Sources:**
+- Primary: Polymarket Data API leaderboard (`GET /v1/leaderboard`) — seeded with top 500 wallets
+- Enriched with our Smart Score calculations (adds Sharpe, category expertise, difficulty adjustment)
+
+**Features:**
+- Click any trader → wallet profile page
+- "Copy" button shortcut → opens copy trade config for that wallet
+- "Follow" button → add to watch list
+- Mini sparkline showing 30d PnL trend per trader
+
+---
+
+#### 4.3.8 Auth
+
+**MVP approach: Anonymous JWT sessions.**
+
+- Users land on MarkyPie with zero friction — no signup, no wallet connect
+- An anonymous JWT session is created automatically on first visit
+- Session persists alert configs, followed wallets, and preferences
+- Stored in `sessions` table (UUID + timestamps)
+
+**When login is required:**
+- Copy trading — requires Polymarket wallet connection (user must sign to authorize trades)
+- Telegram alerts — requires Telegram bot authentication
+- Pro/Premium tiers — requires payment (email-based account)
+
+**Future auth expansion (post-MVP):**
+- Email + password registration
+- Polymarket wallet connect (for copy trading)
+- Kalshi API key linking (for cross-platform portfolio view)
+- Social login (Google, Twitter/X)
+
+---
+
+## 5. Tech Stack Summary
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 22 LTS + TypeScript 5.x |
+| Frontend | Next.js 15 + React 19 |
+| Styling | Tailwind CSS 4 (dark theme) |
+| Charts | TradingView Lightweight Charts v5 |
+| Database | PostgreSQL 16 |
+| Cache / Real-time | Redis 7 (ioredis) |
+| Job Queue | BullMQ |
+| WebSocket | ws (server) + react-use-websocket (client) |
+| Blockchain | Polygon RPC + ethers.js |
+| Telegram | grammy |
+| Polymarket SDK | @polymarket/clob-client |
+| Auth | JWT (jsonwebtoken) |
+
+---
+
+## 6. Implementation Timeline
+
+| Phase | Duration | Deliverables |
+|---|---|---|
+| **Phase 1: Foundation + Data Pipeline** | Week 1-2 | Project scaffold, DB setup, Polymarket sync, Kalshi sync, trade ingestion, on-chain indexer, wallet discovery, market matching |
+| **Phase 2: Intelligence Layer** | Week 3-4 | Smart Score calculation, Market Safety Score, whale detection, position tracking, arbitrage detector, smart money consensus |
+| **Phase 3: Frontend — Dashboard + Detail** | Week 5-6 | Dashboard page, market detail, wallet profile, WebSocket live feed, search, charts with whale markers |
+| **Phase 4: Alerts + Copy Trading** | Week 7-8 | Alert config UI, Telegram bot, copy trade config UI, copy trade engine, execution log |
+| **Phase 5: Polish + Launch** | Week 9-10 | Mobile responsive, performance optimization, dark theme polish, deployment (Vercel + Railway), monitoring, landing page |
+
+---
+
+## 7. Competitive Advantage
+
+**Why MarkyPie wins:**
+
+1. **All-in-one** — No existing tool combines smart money tracking + copy trading + safety scoring + cross-platform + alerts. Users currently need 3-4 separate tools
+2. **Market Safety Score** — A unique, first-of-its-kind risk rating that doesn't exist anywhere. No one scores prediction markets for liquidity traps, oracle risk, and manipulation
+3. **Cross-platform arbitrage** — The only tool detecting price gaps between Polymarket and Kalshi in real-time
+4. **GMGN playbook** — GMGN proved this model works for memecoins. We're applying the same proven UX patterns to a $40B+ and growing market
+5. **Network effects** — More users → more followed wallets → better Smart Scores → more copy trading → more users

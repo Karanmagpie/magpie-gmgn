@@ -1,0 +1,59 @@
+# =============================================================
+# MarkyPie Local Development Services
+#
+# Start:  docker compose up -d
+# Stop:   docker compose down
+# Reset:  docker compose down -v  (deletes all data!)
+# Logs:   docker compose logs -f postgres
+#
+# After starting, connect pgAdmin to:
+#   Host: localhost, Port: 5432
+#   User: markypie, Password: markypie, DB: markypie
+#
+# Redis Insight (optional GUI):
+#   Connect to localhost:6379
+# =============================================================
+
+services:
+  # PostgreSQL 16 — Our primary database
+  # Stores: markets, wallets, trades, positions, scores, configs
+  postgres:
+    image: postgres:16-alpine
+    container_name: markypie-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: markypie
+      POSTGRES_PASSWORD: markypie
+      POSTGRES_DB: markypie
+    volumes:
+      # Persist data across container restarts
+      - pgdata:/var/lib/postgresql/data
+      # Auto-run our schema migration on first start
+      - ./apps/server/src/db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U markypie"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis 7 — Cache, real-time feeds, job queue (BullMQ)
+  # Stores: live prices, whale feed, leaderboard, rate limits, BullMQ jobs
+  redis:
+    image: redis:7-alpine
+    container_name: markypie-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
