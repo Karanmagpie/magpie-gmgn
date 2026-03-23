@@ -54,14 +54,15 @@ export const env = {
   PORT: parseInt(optionalEnv('PORT', '3001'), 10),
 
   // BullMQ job schedules (in milliseconds for repeat intervals)
+  // NOTE: All set to once per day to conserve free-tier DB storage + network
   // Phase 1
-  MARKET_SYNC_INTERVAL_MS: 5 * 60 * 1000,   // 5 minutes
-  TRADE_SYNC_INTERVAL_MS: 60 * 1000,         // 1 minute
-  WALLET_SYNC_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours
+  MARKET_SYNC_INTERVAL_MS: 24 * 60 * 60 * 1000,   // 24 hours (was 5 min)
+  TRADE_SYNC_INTERVAL_MS: 24 * 60 * 60 * 1000,    // 24 hours (was 1 min)
+  WALLET_SYNC_INTERVAL_MS: 24 * 60 * 60 * 1000,   // 24 hours
   // Phase 2: Intelligence Layer
-  WALLET_ENRICHMENT_INTERVAL_MS: 5 * 60 * 1000,   // 5 minutes
-  POSITION_SYNC_INTERVAL_MS: 5 * 60 * 1000,       // 5 minutes
-  SMART_SCORE_INTERVAL_MS: 30 * 60 * 1000,        // 30 minutes
-  SAFETY_SCORE_INTERVAL_MS: 10 * 60 * 1000,       // 10 minutes
-  CONSENSUS_INTERVAL_MS: 2 * 60 * 1000,           // 2 minutes
+  WALLET_ENRICHMENT_INTERVAL_MS: 24 * 60 * 60 * 1000,   // 24 hours (was 5 min)
+  POSITION_SYNC_INTERVAL_MS: 24 * 60 * 60 * 1000,       // 24 hours (was 5 min)
+  SMART_SCORE_INTERVAL_MS: 24 * 60 * 60 * 1000,         // 24 hours (was 30 min)
+  SAFETY_SCORE_INTERVAL_MS: 24 * 60 * 60 * 1000,        // 24 hours (was 10 min)
+  CONSENSUS_INTERVAL_MS: 24 * 60 * 60 * 1000,           // 24 hours (was 2 min)
 } as const;

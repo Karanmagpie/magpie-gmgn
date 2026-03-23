@@ -301,7 +301,7 @@ async function setupWorkers(): Promise<void> {
     'backfill-closed-markets',
     {},
     {
-      repeat: { every: 6 * 60 * 60 * 1000 }, // every 6 hours
+      repeat: { every: 24 * 60 * 60 * 1000 }, // every 24 hours (was 6 hours)
       jobId: 'recurring-closed-market-backfill',
       removeOnComplete: { count: 3 },
       removeOnFail: { count: 5 },
@@ -387,7 +387,7 @@ async function setupWorkers(): Promise<void> {
     'match-markets',
     {},
     {
-      repeat: { every: 10 * 60 * 1000 }, // 10 minutes
+      repeat: { every: 24 * 60 * 60 * 1000 }, // 24 hours (was 10 min)
       jobId: 'recurring-market-match',
       removeOnComplete: { count: 10 },
       removeOnFail: { count: 50 },
