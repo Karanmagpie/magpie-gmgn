@@ -45,7 +45,7 @@ export default function MarketDetailPage() {
   const score = market.safety_score;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
@@ -68,27 +68,27 @@ export default function MarketDetailPage() {
 
       {/* Price bar */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-xl px-5 py-4">
-        <div className="flex items-center gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-8">
           <div>
             <span className="text-[11px] text-gray-500 uppercase tracking-wide">YES</span>
-            <p className="text-2xl font-bold text-emerald-400">{formatPrice(market.yes_price)}</p>
+            <p className="text-xl md:text-2xl font-bold text-emerald-400">{formatPrice(market.yes_price)}</p>
           </div>
           <div>
             <span className="text-[11px] text-gray-500 uppercase tracking-wide">NO</span>
-            <p className="text-2xl font-bold text-red-400">{formatPrice(market.no_price)}</p>
+            <p className="text-xl md:text-2xl font-bold text-red-400">{formatPrice(market.no_price)}</p>
           </div>
           <div>
             <span className="text-[11px] text-gray-500 uppercase tracking-wide">Volume</span>
-            <p className="text-lg font-semibold text-gray-200">{formatUSD(market.volume)}</p>
+            <p className="text-base md:text-lg font-semibold text-gray-200">{formatUSD(market.volume)}</p>
           </div>
           <div>
             <span className="text-[11px] text-gray-500 uppercase tracking-wide">Liquidity</span>
-            <p className="text-lg font-semibold text-gray-200">{formatUSD(market.liquidity)}</p>
+            <p className="text-base md:text-lg font-semibold text-gray-200">{formatUSD(market.liquidity)}</p>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Safety Score */}
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl flex-1 min-w-0">
           <div className="px-5 py-3.5 border-b border-gray-800 flex items-center justify-between">

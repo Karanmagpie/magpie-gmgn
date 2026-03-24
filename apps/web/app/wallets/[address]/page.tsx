@@ -48,7 +48,7 @@ export default function WalletProfilePage() {
   const s = scores[activePeriod] || null;
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl">
       {/* Breadcrumb + Header */}
       <div>
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
@@ -56,21 +56,21 @@ export default function WalletProfilePage() {
           <span className="text-gray-700">/</span>
           <span className="text-gray-400">{wallet.pseudonym || truncateAddress(wallet.address)}</span>
         </div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
               {wallet.pseudonym || truncateAddress(wallet.address)}
               {wallet.is_verified && <span className="text-blue-400 text-sm">✓</span>}
             </h1>
-            <div className="flex items-center gap-3 mt-1.5">
-              <span className="font-mono text-xs text-gray-500">{wallet.address}</span>
+            <div className="flex items-center gap-3 mt-1.5 overflow-hidden">
+              <span className="font-mono text-xs text-gray-500 truncate">{wallet.address}</span>
               {wallet.x_username && (
-                <span className="text-xs text-gray-400">@{wallet.x_username}</span>
+                <span className="text-xs text-gray-400 shrink-0">@{wallet.x_username}</span>
               )}
             </div>
           </div>
           {wallet.leaderboard_rank && (
-            <span className="px-3 py-1.5 bg-yellow-500/10 text-yellow-400 rounded-lg text-sm font-semibold border border-yellow-500/20">
+            <span className="px-3 py-1.5 bg-yellow-500/10 text-yellow-400 rounded-lg text-sm font-semibold border border-yellow-500/20 shrink-0 self-start">
               Rank #{wallet.leaderboard_rank}
             </span>
           )}

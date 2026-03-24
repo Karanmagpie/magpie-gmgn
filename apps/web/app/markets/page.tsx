@@ -64,7 +64,7 @@ export default function MarketsPage() {
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       <div>
         <h1 className="text-2xl font-bold">Markets</h1>
         <p className="text-sm text-gray-500">
@@ -125,27 +125,27 @@ export default function MarketsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-gray-500 border-b border-gray-800">
-                  <th className="text-left px-4 py-2.5 font-medium">Market</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Platform</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Category</th>
-                  <th className="text-right px-4 py-2.5 font-medium">YES</th>
-                  <th className="text-right px-4 py-2.5 font-medium">NO</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Volume</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Safety</th>
+                  <th className="text-left px-3 md:px-4 py-2.5 font-medium">Market</th>
+                  <th className="text-left px-3 md:px-4 py-2.5 font-medium hidden sm:table-cell">Platform</th>
+                  <th className="text-left px-3 md:px-4 py-2.5 font-medium hidden lg:table-cell">Category</th>
+                  <th className="text-right px-3 md:px-4 py-2.5 font-medium">YES</th>
+                  <th className="text-right px-3 md:px-4 py-2.5 font-medium hidden sm:table-cell">NO</th>
+                  <th className="text-right px-3 md:px-4 py-2.5 font-medium">Volume</th>
+                  <th className="text-right px-3 md:px-4 py-2.5 font-medium hidden md:table-cell">Safety</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/50">
                 {markets.map((m) => (
                   <tr key={m.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 max-w-md">
+                    <td className="px-3 md:px-4 py-3 max-w-[200px] md:max-w-md">
                       <Link
                         href={`/markets/${m.id}`}
-                        className="text-gray-200 hover:text-white font-medium line-clamp-2"
+                        className="text-gray-200 hover:text-white font-medium line-clamp-2 text-xs md:text-sm"
                       >
                         {m.title}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 md:px-4 py-3 hidden sm:table-cell">
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         m.platform === 'polymarket'
                           ? 'bg-purple-500/15 text-purple-400'
@@ -154,19 +154,19 @@ export default function MarketsPage() {
                         {m.platform}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs capitalize">
+                    <td className="px-3 md:px-4 py-3 text-gray-400 text-xs capitalize hidden lg:table-cell">
                       {m.category || 'other'}
                     </td>
-                    <td className="px-4 py-3 text-right text-emerald-400">
+                    <td className="px-3 md:px-4 py-3 text-right text-emerald-400 text-xs md:text-sm">
                       {formatPrice(m.yes_price)}
                     </td>
-                    <td className="px-4 py-3 text-right text-red-400">
+                    <td className="px-3 md:px-4 py-3 text-right text-red-400 hidden sm:table-cell">
                       {formatPrice(m.no_price)}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-300">
+                    <td className="px-3 md:px-4 py-3 text-right text-gray-300 text-xs md:text-sm">
                       {formatUSD(m.volume)}
                     </td>
-                    <td className={`px-4 py-3 text-right font-medium ${safetyColor(m.safety_score)}`}>
+                    <td className={`px-3 md:px-4 py-3 text-right font-medium hidden md:table-cell ${safetyColor(m.safety_score)}`}>
                       {m.safety_score ?? '—'}
                     </td>
                   </tr>

@@ -139,7 +139,7 @@ export default function WalletsPage() {
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Smart Money Leaderboard</h1>
@@ -190,60 +190,60 @@ export default function WalletsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
-                  <th className="text-left px-4 py-3 font-medium w-12">#</th>
-                  <th className="text-left px-4 py-3 font-medium">Trader</th>
-                  <th className="text-center px-4 py-3 font-medium">Score</th>
-                  <th className="text-right px-4 py-3 font-medium">PnL</th>
-                  <th className="text-right px-4 py-3 font-medium">Win Rate</th>
-                  <th className="text-right px-4 py-3 font-medium">ROI</th>
-                  <th className="text-right px-4 py-3 font-medium">Volume</th>
-                  <th className="text-right px-4 py-3 font-medium">Markets</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-medium w-8 md:w-12">#</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-medium">Trader</th>
+                  <th className="text-center px-3 md:px-4 py-3 font-medium">Score</th>
+                  <th className="text-right px-3 md:px-4 py-3 font-medium">PnL</th>
+                  <th className="text-right px-3 md:px-4 py-3 font-medium hidden sm:table-cell">Win Rate</th>
+                  <th className="text-right px-3 md:px-4 py-3 font-medium hidden md:table-cell">ROI</th>
+                  <th className="text-right px-3 md:px-4 py-3 font-medium hidden lg:table-cell">Volume</th>
+                  <th className="text-right px-3 md:px-4 py-3 font-medium hidden lg:table-cell">Markets</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/50">
                 {wallets.map((w, i) => (
                   <tr key={w.id} className="hover:bg-gray-800/30 transition-colors group">
-                    <td className="px-4 py-3 text-gray-600 text-xs">{offset + i + 1}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 md:px-4 py-3 text-gray-600 text-xs">{offset + i + 1}</td>
+                    <td className="px-3 md:px-4 py-3">
                       <Link
                         href={`/wallets/${w.address}`}
-                        className="text-gray-200 hover:text-white font-medium transition-colors"
+                        className="text-gray-200 hover:text-white font-medium transition-colors text-xs md:text-sm"
                       >
                         {w.pseudonym || truncateAddress(w.address)}
                       </Link>
                       {w.x_username && (
-                        <span className="text-[11px] text-gray-600 ml-2">@{w.x_username}</span>
+                        <span className="text-[11px] text-gray-600 ml-2 hidden md:inline">@{w.x_username}</span>
                       )}
                       {w.is_verified && (
                         <span className="text-[11px] text-blue-400 ml-1">✓</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 md:px-4 py-3 text-center">
                       <button
                         onClick={() => setPopupWallet(w)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-sm transition-all hover:ring-1 hover:ring-gray-600 cursor-pointer ${scoreColor(w.smart_score)} bg-gray-800/50`}
+                        className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1 rounded-lg font-bold text-xs md:text-sm transition-all hover:ring-1 hover:ring-gray-600 cursor-pointer ${scoreColor(w.smart_score)} bg-gray-800/50`}
                         title="Click for score breakdown"
                       >
                         {w.smart_score ?? '—'}
                       </button>
                     </td>
-                    <td className={`px-4 py-3 text-right font-medium ${
+                    <td className={`px-3 md:px-4 py-3 text-right font-medium text-xs md:text-sm ${
                       parseFloat(w.total_pnl) >= 0 ? 'text-emerald-400' : 'text-red-400'
                     }`}>
                       {formatUSD(w.total_pnl)}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-300">
+                    <td className="px-3 md:px-4 py-3 text-right text-gray-300 hidden sm:table-cell">
                       {w.win_rate ? formatPct(w.win_rate) : '—'}
                     </td>
-                    <td className={`px-4 py-3 text-right ${
+                    <td className={`px-3 md:px-4 py-3 text-right hidden md:table-cell ${
                       parseFloat(w.roi) >= 0 ? 'text-emerald-400' : 'text-red-400'
                     }`}>
                       {w.roi ? formatPct(w.roi) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-400">
+                    <td className="px-3 md:px-4 py-3 text-right text-gray-400 hidden lg:table-cell">
                       {formatUSD(w.total_volume)}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-500">
+                    <td className="px-3 md:px-4 py-3 text-right text-gray-500 hidden lg:table-cell">
                       {w.total_markets ?? '—'}
                     </td>
                   </tr>

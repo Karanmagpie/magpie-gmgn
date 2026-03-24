@@ -37,41 +37,41 @@ export function LeaderboardPreview() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-gray-500 border-b border-gray-800">
-                <th className="text-left px-4 py-2 font-medium">Rank</th>
-                <th className="text-left px-4 py-2 font-medium">Trader</th>
-                <th className="text-right px-4 py-2 font-medium">Score</th>
-                <th className="text-right px-4 py-2 font-medium">30d PnL</th>
-                <th className="text-right px-4 py-2 font-medium">Win Rate</th>
-                <th className="text-right px-4 py-2 font-medium">Volume</th>
+                <th className="text-left px-3 md:px-4 py-2 font-medium">Rank</th>
+                <th className="text-left px-3 md:px-4 py-2 font-medium">Trader</th>
+                <th className="text-right px-3 md:px-4 py-2 font-medium">Score</th>
+                <th className="text-right px-3 md:px-4 py-2 font-medium">30d PnL</th>
+                <th className="text-right px-3 md:px-4 py-2 font-medium hidden sm:table-cell">Win Rate</th>
+                <th className="text-right px-3 md:px-4 py-2 font-medium hidden sm:table-cell">Volume</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
               {wallets.map((w, i) => (
                 <tr key={w.id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-2.5 text-gray-500">{i + 1}</td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-3 md:px-4 py-2.5 text-gray-500">{i + 1}</td>
+                  <td className="px-3 md:px-4 py-2.5">
                     <Link
                       href={`/wallets/${w.address}`}
-                      className="text-gray-200 hover:text-white font-medium"
+                      className="text-gray-200 hover:text-white font-medium text-xs md:text-sm"
                     >
                       {w.pseudonym || truncateAddress(w.address)}
                     </Link>
                     {w.x_username && (
-                      <span className="text-gray-600 text-xs ml-1">@{w.x_username}</span>
+                      <span className="text-gray-600 text-xs ml-1 hidden md:inline">@{w.x_username}</span>
                     )}
                   </td>
-                  <td className={`px-4 py-2.5 text-right font-semibold ${scoreColor(w.smart_score)}`}>
+                  <td className={`px-3 md:px-4 py-2.5 text-right font-semibold ${scoreColor(w.smart_score)}`}>
                     {w.smart_score ?? '—'}
                   </td>
-                  <td className={`px-4 py-2.5 text-right ${
+                  <td className={`px-3 md:px-4 py-2.5 text-right text-xs md:text-sm ${
                     parseFloat(w.total_pnl) >= 0 ? 'text-emerald-400' : 'text-red-400'
                   }`}>
                     {formatUSD(w.total_pnl)}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-gray-300">
+                  <td className="px-3 md:px-4 py-2.5 text-right text-gray-300 hidden sm:table-cell">
                     {w.win_rate ? formatPct(w.win_rate) : '—'}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-gray-400">
+                  <td className="px-3 md:px-4 py-2.5 text-right text-gray-400 hidden sm:table-cell">
                     {formatUSD(w.total_volume)}
                   </td>
                 </tr>
