@@ -44,7 +44,8 @@ import { redis } from '../db/redis';
 import { env } from '../config/env';
 import { createLogger } from '../utils/logger';
 import { db } from '../db/postgres';
-import { REDIS_KEYS } from '@markypie/shared';
+import { REDIS_KEYS, TRADE_SIZE_TIERS } from '@markypie/shared';
+import { sendWhaleAlert, sendNewMarketAlert, sendMarketResolvedAlert } from '../alerts/telegram';
 
 const log = createLogger('polymarket-ws');
 
@@ -187,6 +188,13 @@ async function handleMessage(data: string): Promise<void> {
 
       case 'new_market':
         log.info({ question: message.question, market: message.market }, 'New market detected via WebSocket');
+        if (message.question) {
+          sendNewMarketAlert({
+            title: message.question,
+            platform: 'Polymarket',
+            category: message.category || undefined,
+          }).catch(err => log.error({ err }, 'Telegram new market alert failed'));
+        }
         break;
 
       case 'market_resolved':
@@ -195,6 +203,13 @@ async function handleMessage(data: string): Promise<void> {
           winner: message.winning_outcome,
           market: message.market,
         }, 'Market resolved via WebSocket');
+        if (message.question) {
+          sendMarketResolvedAlert({
+            title: message.question,
+            outcome: message.winning_outcome || 'UNKNOWN',
+            platform: 'Polymarket',
+          }).catch(err => log.error({ err }, 'Telegram resolved alert failed'));
+        }
         break;
 
       default:
@@ -371,6 +386,9 @@ async function handleLastTradePrice(message: any): Promise<void> {
       })
     );
     await redis.ltrim(REDIS_KEYS.whaleFeed, 0, 99);
+
+    // Telegram whale alert skipped here — WebSocket doesn't provide wallet address.
+    // The polling job (polymarket-trades.ts) sends whale alerts with proper wallet info.
   }
 }
 

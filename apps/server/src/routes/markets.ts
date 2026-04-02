@@ -9,7 +9,9 @@
 //     category         — 'politics' | 'sports' | etc.
 //     status           — 'active' | 'closed' | 'resolved'
 //     min_safety_score — minimum safety score (0-100)
-//     sort             — 'volume' | 'safety_score' | 'yes_price' | 'liquidity'
+//     near_resolution  — '24h' | '48h' | '7d' | '30d' — show endgame/bonding markets
+//     min_probability  — 0.80-0.99 (default 0.90) — min dominant side probability
+//     sort             — 'volume' | 'safety_score' | 'yes_price' | 'liquidity' | 'end_date'
 //     limit            — results per page (default 50, max 200)
 //     offset           — pagination offset (default 0)
 //   Cached in Redis for 60s per unique param combo.
@@ -51,12 +53,18 @@ marketsRouter.get('/', async (c) => {
     const limit = Math.min(parseInt(query.limit || '50', 10), 200);
     const offset = parseInt(query.offset || '0', 10);
 
+    // Near Resolution filter: markets with high probability expiring within N hours
+    const nearResolution = query.near_resolution || null;
+    const validWindows: Record<string, number> = { '24h': 24, '48h': 48, '7d': 168, '30d': 720 };
+    const nearResolutionHours = nearResolution && validWindows[nearResolution] ? validWindows[nearResolution] : null;
+
     // Validate sort column to prevent SQL injection
-    const validSorts = ['volume', 'safety_score', 'yes_price', 'liquidity', 'created_at'];
+    const validSorts = ['volume', 'safety_score', 'yes_price', 'liquidity', 'created_at', 'end_date'];
     const sortCol = validSorts.includes(sort) ? sort : 'volume';
 
     // Build Redis cache key from params
-    const cacheKey = `cache:api:markets:${platform}:${category}:${status}:${minSafetyScore}:${sortCol}:${limit}:${offset}`;
+    const minProbParam = query.min_probability || '';
+    const cacheKey = `cache:api:markets:${platform}:${category}:${status}:${minSafetyScore}:${nearResolution}:${minProbParam}:${sortCol}:${limit}:${offset}`;
 
     // Try cache first
     const cached = await redis.get(cacheKey);
@@ -86,6 +94,21 @@ marketsRouter.get('/', async (c) => {
       params.push(minSafetyScore);
     }
 
+    // Near Resolution / Bonding / Endgame filter
+    // Based on real strategies: UnifAI (>95%), bonding (>80%), endgame sweep (>95%)
+    if (nearResolutionHours !== null) {
+      // Market must expire in the future but within the chosen window
+      conditions.push(`end_date > NOW()`);
+      conditions.push(`end_date <= NOW() + INTERVAL '${nearResolutionHours} hours'`);
+      // Either YES or NO price must show high probability (dominant outcome)
+      const minProb = query.min_probability ? parseFloat(query.min_probability) : 0.90;
+      const clampedProb = Math.max(0.80, Math.min(0.99, minProb));
+      conditions.push(`GREATEST(COALESCE(yes_price, 0), COALESCE(no_price, 0)) >= $${paramIndex++}`);
+      params.push(clampedProb);
+      // Require minimum liquidity to avoid failed fills (endgame risk)
+      conditions.push(`COALESCE(liquidity, 0) >= 5000`);
+    }
+
     // Always filter out markets with null title
     conditions.push(`title IS NOT NULL`);
 
@@ -99,6 +122,19 @@ marketsRouter.get('/', async (c) => {
     );
     const total = parseInt(countResult.rows[0].total, 10);
 
+    // When near_resolution is active, add computed columns for estimated return
+    const nearResFields = nearResolutionHours !== null
+      ? `,
+        GREATEST(COALESCE(yes_price, 0), COALESCE(no_price, 0)) AS dominant_price,
+        CASE WHEN COALESCE(yes_price, 0) >= COALESCE(no_price, 0) THEN 'YES' ELSE 'NO' END AS dominant_outcome,
+        ROUND((1.0 - GREATEST(COALESCE(yes_price, 0), COALESCE(no_price, 0))) * 100, 2) AS est_return_pct,
+        EXTRACT(EPOCH FROM (end_date - NOW())) / 3600 AS hours_until_expiry`
+      : '';
+
+    // Default sort for near_resolution: soonest expiry first (best for endgame)
+    const effectiveSort = nearResolutionHours !== null && sort === 'volume' ? 'end_date' : sortCol;
+    const sortDirection = effectiveSort === 'end_date' ? 'ASC' : 'DESC';
+
     // Get paginated results
     const marketsResult = await db.query(
       `SELECT
@@ -107,9 +143,10 @@ marketsRouter.get('/', async (c) => {
         safety_score, safety_details,
         outcome, end_date, matched_market_id,
         token_ids, created_at, updated_at
+        ${nearResFields}
        FROM markets
        ${whereClause}
-       ORDER BY ${sortCol} DESC NULLS LAST
+       ORDER BY ${effectiveSort} ${sortDirection} NULLS LAST
        LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
       [...params, limit, offset]
     );

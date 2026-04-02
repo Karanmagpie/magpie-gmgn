@@ -111,6 +111,47 @@ export const KALSHI_APIS = {
   DEMO_REST: 'https://demo-api.kalshi.co/trade-api/v2',
 } as const;
 
+/**
+ * Near Resolution / Bonding / Endgame filter
+ *
+ * Based on real protocol strategies:
+ * - UnifAI endgame: buys at >95% probability, auto-executes before settlement
+ * - Bonding strategy: 80%+ is where consensus forms, 90%+ is the sweet spot
+ * - Endgame sweep: targets >95% (even 99.7%) near settlement for "certain" profit
+ *
+ * Sources:
+ * - https://docs.unifai.network/getting-started/faq/faq-polymarket-strategies
+ * - https://startpolymarket.com/strategies/bonding/
+ * - https://news.polymarket.com/p/bond-market
+ */
+export const NEAR_RESOLUTION_CONFIG = {
+  /** Probability tiers — based on real bonding/endgame criteria */
+  PROBABILITY_TIERS: {
+    /** Consensus formed, reversal unlikely (bonding strategy entry point) */
+    BOND: 0.80,
+    /** Sweet spot — strong consensus, good risk/reward */
+    SAFE_BOND: 0.90,
+    /** Endgame — near-certain outcome (UnifAI threshold) */
+    ENDGAME: 0.95,
+    /** Ultra-safe — outcome virtually guaranteed, minimal return */
+    ULTRA_SAFE: 0.99,
+  },
+  /** Time windows in hours */
+  WINDOWS: {
+    '24h': 24,
+    '48h': 48,
+    '7d': 168,
+    '30d': 720,
+  },
+  /** Default filter values */
+  DEFAULTS: {
+    MIN_PROBABILITY: 0.90,
+    WINDOW: '7d' as const,
+  },
+  /** Minimum liquidity to avoid failed fills (endgame risk) */
+  MIN_LIQUIDITY: 5_000,
+} as const;
+
 /** Arbitrage detection: minimum spread percentage to flag */
 export const MIN_ARBITRAGE_SPREAD_PCT = 2;
 

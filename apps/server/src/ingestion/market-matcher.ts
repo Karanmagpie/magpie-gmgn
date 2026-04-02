@@ -38,6 +38,7 @@
 
 import { db } from '../db/postgres';
 import { createLogger } from '../utils/logger';
+import { sendArbitrageAlert } from '../alerts/telegram';
 
 const log = createLogger('market-matcher');
 
@@ -474,7 +475,7 @@ export async function matchMarkets(): Promise<void> {
 
     log.info({ count: arbOpportunities.length }, 'Arbitrage opportunities stored');
 
-    // Log top arbs
+    // Log top arbs + send Telegram alerts
     const topArbs = arbOpportunities
       .sort((a, b) => b.spreadPct - a.spreadPct)
       .slice(0, 5);
@@ -488,6 +489,19 @@ export async function matchMarkets(): Promise<void> {
         priceA: arb.priceA,
         priceB: arb.priceB,
       }, 'Arbitrage opportunity');
+
+      // Send Telegram alert for top arbitrage opportunities
+      if (poly && kalshi) {
+        sendArbitrageAlert({
+          polymarketTitle: poly.title,
+          kalshiTitle: kalshi.title,
+          polyPrice: arb.priceA,
+          kalshiPrice: arb.priceB,
+          spreadPct: arb.spreadPct,
+          polyVolume: parseFloat(poly.volume),
+          kalshiVolume: parseFloat(kalshi.volume),
+        }).catch(err => log.error({ err }, 'Telegram arbitrage alert failed'));
+      }
     }
   }
 }

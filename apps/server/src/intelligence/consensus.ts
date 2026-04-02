@@ -26,6 +26,7 @@ import { db } from '../db/postgres';
 import { redis } from '../db/redis';
 import { createLogger } from '../utils/logger';
 import { REDIS_KEYS, SMART_SCORE_CONFIG } from '@markypie/shared';
+import { sendConsensusShiftAlert } from '../alerts/telegram';
 
 const log = createLogger('consensus');
 
@@ -122,6 +123,33 @@ export async function calculateConsensus(): Promise<void> {
       };
 
       const key = REDIS_KEYS.smartMoneyConsensus(marketId);
+
+      // Check if consensus flipped (YES→NO or NO→YES) compared to previous
+      const previousRaw = await redis.get(key);
+      if (previousRaw) {
+        try {
+          const previous = JSON.parse(previousRaw);
+          const prevYesPct = (previous.yes_pct || 0) * 100;
+          const currYesPct = consensus.yes_pct * 100;
+
+          // Only alert if enough smart wallets and enough value
+          if (mc.wallets.size >= 3 && totalValue >= 1000) {
+            // Look up market title for the alert
+            const marketRow = await db.query('SELECT title FROM markets WHERE id = $1', [marketId]);
+            const marketTitle = marketRow.rows[0]?.title || 'Unknown market';
+
+            sendConsensusShiftAlert({
+              marketTitle,
+              marketId,
+              previousYesPct: prevYesPct,
+              currentYesPct: currYesPct,
+              smartWalletCount: mc.wallets.size,
+              totalSmartValue: totalValue,
+            }).catch(err => log.error({ err }, 'Telegram consensus shift alert failed'));
+          }
+        } catch {}
+      }
+
       pipeline.set(key, JSON.stringify(consensus), 'EX', CONSENSUS_TTL_SECONDS);
       marketsUpdated++;
     }

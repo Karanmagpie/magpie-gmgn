@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { formatUSD, formatPrice, safetyColor } from '@/lib/format';
+import { formatUSD, formatPrice, safetyColor, timeUntil, returnColor } from '@/lib/format';
 
 const CATEGORIES = [
   'all', 'politics', 'sports', 'crypto', 'economics',
@@ -16,6 +16,22 @@ const SORT_OPTIONS = [
   { value: 'safety_score', label: 'Safety Score' },
   { value: 'created_at', label: 'Newest' },
   { value: 'yes_price', label: 'YES Price' },
+];
+
+// Near Resolution / Bonding / Endgame config
+// Based on real strategies: UnifAI endgame (>95%), bonding (>80%), endgame sweep (>95%)
+const NEAR_RES_WINDOWS = [
+  { value: '24h', label: '24 hours' },
+  { value: '48h', label: '48 hours' },
+  { value: '7d', label: '7 days' },
+  { value: '30d', label: '30 days' },
+];
+
+const PROBABILITY_TIERS = [
+  { value: '0.80', label: '80%+ (Bond)', desc: 'Consensus formed' },
+  { value: '0.90', label: '90%+ (Safe Bond)', desc: 'Strong consensus' },
+  { value: '0.95', label: '95%+ (Endgame)', desc: 'Near certain' },
+  { value: '0.99', label: '99%+ (Ultra Safe)', desc: 'Guaranteed' },
 ];
 
 const PAGE_SIZE = 25;
@@ -31,16 +47,23 @@ export default function MarketsPage() {
   const [platform, setPlatform] = useState('all');
   const [sort, setSort] = useState('volume');
 
+  // Near Resolution filter state
+  const [nearResolution, setNearResolution] = useState(false);
+  const [nearResWindow, setNearResWindow] = useState('7d');
+  const [minProbability, setMinProbability] = useState('0.90');
+
   const fetchMarkets = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.markets.list({
         category: category === 'all' ? undefined : category,
         platform: platform === 'all' ? undefined : platform,
-        sort,
+        sort: nearResolution ? 'end_date' : sort,
         limit: String(PAGE_SIZE),
         offset: String(offset),
         status: 'active',
+        near_resolution: nearResolution ? nearResWindow : undefined,
+        min_probability: nearResolution ? minProbability : undefined,
       });
       setMarkets(data.markets);
       setTotal(data.total);
@@ -49,7 +72,7 @@ export default function MarketsPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, platform, sort, offset]);
+  }, [category, platform, sort, offset, nearResolution, nearResWindow, minProbability]);
 
   useEffect(() => {
     fetchMarkets();
@@ -58,7 +81,7 @@ export default function MarketsPage() {
   // Reset offset when filters change
   useEffect(() => {
     setOffset(0);
-  }, [category, platform, sort]);
+  }, [category, platform, sort, nearResolution, nearResWindow, minProbability]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -68,7 +91,10 @@ export default function MarketsPage() {
       <div>
         <h1 className="text-2xl font-bold">Markets</h1>
         <p className="text-sm text-gray-500">
-          {total.toLocaleString()} active markets across Polymarket + Kalshi
+          {nearResolution
+            ? `${total.toLocaleString()} near-resolution markets (${(parseFloat(minProbability) * 100).toFixed(0)}%+ probability, expiring within ${nearResWindow})`
+            : `${total.toLocaleString()} active markets across Polymarket + Kalshi`
+          }
         </p>
       </div>
 
@@ -102,17 +128,86 @@ export default function MarketsPage() {
           ))}
         </select>
 
-        {/* Sort select */}
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded px-3 py-1.5"
+        {/* Sort select (hidden when near resolution active — auto-sorts by expiry) */}
+        {!nearResolution && (
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded px-3 py-1.5"
+          >
+            {SORT_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>Sort: {s.label}</option>
+            ))}
+          </select>
+        )}
+
+        {/* Near Resolution toggle */}
+        <button
+          onClick={() => setNearResolution(!nearResolution)}
+          className={`px-3 py-1.5 text-xs rounded font-medium transition-colors ${
+            nearResolution
+              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+              : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
+          }`}
         >
-          {SORT_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>Sort: {s.label}</option>
-          ))}
-        </select>
+          {nearResolution ? 'Near Resolution ON' : 'Near Resolution'}
+        </button>
       </div>
+
+      {/* Near Resolution filter panel — shown when toggled on */}
+      {nearResolution && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
+            <span>Near Resolution / Bonding Filter</span>
+            <span className="text-xs text-gray-500 font-normal">
+              High-probability markets expiring soon — based on endgame &amp; bonding strategies
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Probability tier */}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">Min Probability</label>
+              <div className="flex gap-1.5">
+                {PROBABILITY_TIERS.map((tier) => (
+                  <button
+                    key={tier.value}
+                    onClick={() => setMinProbability(tier.value)}
+                    title={tier.desc}
+                    className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                      minProbability === tier.value
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    {tier.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time window */}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">Expires Within</label>
+              <div className="flex gap-1.5">
+                {NEAR_RES_WINDOWS.map((w) => (
+                  <button
+                    key={w.value}
+                    onClick={() => setNearResWindow(w.value)}
+                    className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                      nearResWindow === w.value
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Markets table */}
       <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
@@ -127,11 +222,23 @@ export default function MarketsPage() {
                 <tr className="text-xs text-gray-500 border-b border-gray-800">
                   <th className="text-left px-3 md:px-4 py-2.5 font-medium">Market</th>
                   <th className="text-left px-3 md:px-4 py-2.5 font-medium hidden sm:table-cell">Platform</th>
-                  <th className="text-left px-3 md:px-4 py-2.5 font-medium hidden lg:table-cell">Category</th>
+                  {!nearResolution && (
+                    <th className="text-left px-3 md:px-4 py-2.5 font-medium hidden lg:table-cell">Category</th>
+                  )}
                   <th className="text-right px-3 md:px-4 py-2.5 font-medium">YES</th>
                   <th className="text-right px-3 md:px-4 py-2.5 font-medium hidden sm:table-cell">NO</th>
-                  <th className="text-right px-3 md:px-4 py-2.5 font-medium">Volume</th>
-                  <th className="text-right px-3 md:px-4 py-2.5 font-medium hidden md:table-cell">Safety</th>
+                  {nearResolution ? (
+                    <>
+                      <th className="text-right px-3 md:px-4 py-2.5 font-medium">Side</th>
+                      <th className="text-right px-3 md:px-4 py-2.5 font-medium">Est. Return</th>
+                      <th className="text-right px-3 md:px-4 py-2.5 font-medium">Expires</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="text-right px-3 md:px-4 py-2.5 font-medium">Volume</th>
+                      <th className="text-right px-3 md:px-4 py-2.5 font-medium hidden md:table-cell">Safety</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/50">
@@ -154,21 +261,45 @@ export default function MarketsPage() {
                         {m.platform}
                       </span>
                     </td>
-                    <td className="px-3 md:px-4 py-3 text-gray-400 text-xs capitalize hidden lg:table-cell">
-                      {m.category || 'other'}
-                    </td>
+                    {!nearResolution && (
+                      <td className="px-3 md:px-4 py-3 text-gray-400 text-xs capitalize hidden lg:table-cell">
+                        {m.category || 'other'}
+                      </td>
+                    )}
                     <td className="px-3 md:px-4 py-3 text-right text-emerald-400 text-xs md:text-sm">
                       {formatPrice(m.yes_price)}
                     </td>
                     <td className="px-3 md:px-4 py-3 text-right text-red-400 hidden sm:table-cell">
                       {formatPrice(m.no_price)}
                     </td>
-                    <td className="px-3 md:px-4 py-3 text-right text-gray-300 text-xs md:text-sm">
-                      {formatUSD(m.volume)}
-                    </td>
-                    <td className={`px-3 md:px-4 py-3 text-right font-medium hidden md:table-cell ${safetyColor(m.safety_score)}`}>
-                      {m.safety_score ?? '—'}
-                    </td>
+                    {nearResolution ? (
+                      <>
+                        <td className="px-3 md:px-4 py-3 text-right text-xs">
+                          <span className={`px-2 py-0.5 rounded font-medium ${
+                            m.dominant_outcome === 'YES'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-red-500/15 text-red-400'
+                          }`}>
+                            {m.dominant_outcome || '—'} {m.dominant_price ? `${(m.dominant_price * 100).toFixed(1)}%` : ''}
+                          </span>
+                        </td>
+                        <td className={`px-3 md:px-4 py-3 text-right font-semibold text-xs md:text-sm ${returnColor(m.est_return_pct)}`}>
+                          {m.est_return_pct != null ? `+${Number(m.est_return_pct).toFixed(1)}%` : '—'}
+                        </td>
+                        <td className="px-3 md:px-4 py-3 text-right text-amber-400 text-xs">
+                          {timeUntil(m.end_date)}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-3 md:px-4 py-3 text-right text-gray-300 text-xs md:text-sm">
+                          {formatUSD(m.volume)}
+                        </td>
+                        <td className={`px-3 md:px-4 py-3 text-right font-medium hidden md:table-cell ${safetyColor(m.safety_score)}`}>
+                          {m.safety_score ?? '—'}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

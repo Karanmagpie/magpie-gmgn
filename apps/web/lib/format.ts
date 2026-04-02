@@ -83,6 +83,34 @@ export function safetyColor(score: number | null): string {
   return 'text-red-400';
 }
 
+// "Expires in 4h", "Expires in 2d", "Expires in 12m"
+export function timeUntil(date: string | Date | null): string {
+  if (!date) return '';
+  const now = Date.now();
+  const then = new Date(date).getTime();
+  const diff = then - now;
+
+  if (diff <= 0) return 'Expired';
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) {
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `${minutes}m`;
+  }
+  if (hours < 24) return `${hours}h`;
+  if (hours < 168) return `${Math.floor(hours / 24)}d`;
+  return `${Math.floor(hours / 168)}w`;
+}
+
+// Estimated return color — green for higher returns
+export function returnColor(pct: number | null): string {
+  if (pct === null || pct === undefined) return 'text-gray-400';
+  if (pct >= 10) return 'text-emerald-400';
+  if (pct >= 5) return 'text-green-400';
+  if (pct >= 2) return 'text-yellow-400';
+  return 'text-orange-400';
+}
+
 // BUY = green, SELL = red
 export function sideColor(side: string): string {
   return side === 'BUY' ? 'text-emerald-400' : 'text-red-400';

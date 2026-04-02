@@ -59,6 +59,8 @@ export const api = {
       category?: string;
       status?: string;
       min_safety_score?: string;
+      near_resolution?: string;
+      min_probability?: string;
       sort?: string;
       limit?: string;
       offset?: string;

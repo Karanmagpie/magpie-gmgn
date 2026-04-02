@@ -34,6 +34,7 @@ import { redis } from '../db/redis';
 import { env } from '../config/env';
 import { createLogger } from '../utils/logger';
 import { REDIS_KEYS, TRADE_SIZE_TIERS } from '@markypie/shared';
+import { sendWhaleAlert } from '../alerts/telegram';
 
 const log = createLogger('polymarket-trades');
 
@@ -283,6 +284,24 @@ export async function ingestPolymarketTrades(): Promise<void> {
             timestamp: trade.timestamp,
             tier: whaleTier, // 'notable' | 'whale' | 'mega' | 'ultra'
           });
+
+          // Send Telegram alert for whale trades
+          // Look up pseudonym for nicer display
+          const pseudonym = walletId
+            ? (await db.query('SELECT pseudonym FROM wallets WHERE id = $1', [walletId])).rows[0]?.pseudonym
+            : null;
+
+          sendWhaleAlert({
+            walletAddress: traderAddress,
+            walletName: pseudonym || undefined,
+            side: trade.side || 'BUY',
+            outcome,
+            price,
+            size,
+            marketTitle,
+            tier: whaleTier,
+            source: 'api',
+          }).catch(err => log.error({ err }, 'Telegram whale alert failed'));
         }
       }
     }
