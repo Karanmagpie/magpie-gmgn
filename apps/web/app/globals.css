@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+/* =========================================================
+   Shimmer animation for skeleton loaders
+   ========================================================= */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* =========================================================
+   Ticker tape horizontal scroll
+   ========================================================= */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: ticker 60s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* =========================================================
+   Subtle pulse glow for live indicators
+   ========================================================= */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(16, 185, 129, 0.6); }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* =========================================================
+   Gradient borders for premium cards
+   ========================================================= */
+.gradient-border {
+  position: relative;
+  background: linear-gradient(to bottom right, rgba(16, 185, 129, 0.1), rgba(245, 158, 11, 0.05));
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(245, 158, 11, 0.2), rgba(16, 185, 129, 0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

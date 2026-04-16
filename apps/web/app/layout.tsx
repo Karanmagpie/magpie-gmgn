@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Sidebar } from '@/components/sidebar';
+import { Providers } from '@/components/providers';
 
 export const metadata: Metadata = {
   title: 'PMGN — Smart Money for Prediction Markets',
@@ -15,10 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-gray-950 text-gray-100 min-h-screen">
-        <Sidebar />
-        <main className="md:ml-56 min-h-screen pt-14 md:pt-0">
-          {children}
-        </main>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

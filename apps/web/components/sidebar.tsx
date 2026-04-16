@@ -3,12 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { LayoutDashboard, BarChart3, Trophy, ArrowRightLeft, type LucideIcon } from 'lucide-react';
 
-const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: '⚡' },
-  { href: '/markets', label: 'Markets', icon: '📊' },
-  { href: '/wallets', label: 'Leaderboard', icon: '🏆' },
-  { href: '/arbitrage', label: 'Arbitrage', icon: '🔄' },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/markets', label: 'Markets', icon: BarChart3 },
+  { href: '/wallets', label: 'Leaderboard', icon: Trophy },
+  { href: '/arbitrage', label: 'Arbitrage', icon: ArrowRightLeft },
 ];
 
 export function Sidebar() {
@@ -53,9 +62,9 @@ export function Sidebar() {
             )}
           </svg>
         </button>
-        <Link href="/" className="flex items-center gap-1.5 ml-3">
-          <span className="text-lg font-bold text-white tracking-tight">PMGN</span>
-          <span className="text-xs text-gray-500 mt-0.5">.io</span>
+        <Link href="/dashboard" className="flex items-center gap-2 ml-3">
+          <Image src="/generated/logo.png" alt="PMGN" width={28} height={28} className="rounded-lg" />
+          <span className="text-lg font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent tracking-tight">PMGN</span>
         </Link>
       </div>
 
@@ -75,19 +84,22 @@ export function Sidebar() {
         md:translate-x-0
       `}>
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 px-5 py-5 border-b border-gray-800">
-          <span className="text-xl font-bold text-white tracking-tight">PMGN</span>
-          <span className="text-xs text-gray-500 mt-1">.io</span>
+        <Link href="/" className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-800">
+          <div className="rounded-xl overflow-hidden animate-glow">
+            <Image src="/generated/logo.png" alt="PMGN" width={40} height={40} className="rounded-xl" priority />
+          </div>
+          <div>
+            <div className="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent tracking-tight leading-none">PMGN</div>
+            <div className="text-[10px] text-gray-500 mt-0.5 tracking-wider uppercase">Smart Money</div>
+          </div>
         </Link>
 
         {/* Nav Items */}
         <nav className="flex-1 py-3">
           {NAV_ITEMS.map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href);
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
@@ -98,16 +110,23 @@ export function Sidebar() {
                     : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40'
                 }`}
               >
-                <span className="text-base">{item.icon}</span>
+                <Icon size={16} className={isActive ? 'text-emerald-400' : ''} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Bottom section */}
-        <div className="px-5 py-4 border-t border-gray-800">
-          <p className="text-xs text-gray-600">Read-only MVP</p>
+        {/* Wallet Connect */}
+        <div className="px-3 py-4 border-t border-gray-800">
+          <ConnectButton
+            chainStatus="none"
+            showBalance={false}
+            accountStatus={{
+              smallScreen: 'avatar',
+              largeScreen: 'address',
+            }}
+          />
         </div>
       </aside>
     </>

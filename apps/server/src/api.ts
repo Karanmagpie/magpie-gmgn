@@ -32,6 +32,7 @@ import { marketsRouter } from './routes/markets';
 import { walletsRouter } from './routes/wallets';
 import { tradesRouter } from './routes/trades';
 import { intelligenceRouter } from './routes/intelligence';
+import { followsRouter } from './routes/follows';
 import { createLogger } from './utils/logger';
 
 const log = createLogger('api');
@@ -54,7 +55,7 @@ app.use('*', cors({
     }
     return null;
   },
-  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   maxAge: 3600,
 }));
@@ -76,6 +77,7 @@ app.route('/api/markets', marketsRouter);
 app.route('/api/wallets', walletsRouter);
 app.route('/api/trades', tradesRouter);
 app.route('/api/intelligence', intelligenceRouter);
+app.route('/api/follows', followsRouter);
 
 // =============================================================
 // 404 handler — any path not matched above

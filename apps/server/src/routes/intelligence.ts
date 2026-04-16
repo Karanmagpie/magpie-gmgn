@@ -146,3 +146,43 @@ intelligenceRouter.get('/smart-money', async (c) => {
     return c.json({ data: null, error: 'Failed to fetch smart money wallets' }, 500);
   }
 });
+
+// =============================================================
+// GET /api/intelligence/stats
+// Aggregate stats for the dashboard hero bar.
+// Cached in Redis for 60s.
+// =============================================================
+intelligenceRouter.get('/stats', async (c) => {
+  try {
+    const cacheKey = 'cache:stats:hero';
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return c.json(JSON.parse(cached));
+    }
+
+    const [markets, wallets, trades, whaleTrades24h, volume24h] = await Promise.all([
+      db.query(`SELECT COUNT(*) AS total FROM markets WHERE status = 'active'`),
+      db.query(`SELECT COUNT(*) AS total FROM wallets`),
+      db.query(`SELECT COUNT(*) AS total FROM trades WHERE platform_timestamp > NOW() - INTERVAL '24 hours'`),
+      db.query(`SELECT COUNT(*) AS total FROM trades WHERE is_whale = true AND platform_timestamp > NOW() - INTERVAL '24 hours'`),
+      db.query(`SELECT COALESCE(SUM(size), 0) AS total FROM trades WHERE platform_timestamp > NOW() - INTERVAL '24 hours'`),
+    ]);
+
+    const response = {
+      data: {
+        active_markets: parseInt(markets.rows[0].total, 10),
+        tracked_wallets: parseInt(wallets.rows[0].total, 10),
+        trades_24h: parseInt(trades.rows[0].total, 10),
+        whale_trades_24h: parseInt(whaleTrades24h.rows[0].total, 10),
+        volume_24h: parseFloat(volume24h.rows[0].total) || 0,
+      },
+      error: null,
+    };
+
+    await redis.setex(cacheKey, 60, JSON.stringify(response));
+    return c.json(response);
+  } catch (err) {
+    log.error({ err }, 'GET /api/intelligence/stats failed');
+    return c.json({ data: null, error: 'Failed to fetch stats' }, 500);
+  }
+});

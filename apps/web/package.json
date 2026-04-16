@@ -9,17 +9,25 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.9.5",
     "@markypie/shared": "*",
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@tanstack/react-query": "^5.96.2",
+    "lightweight-charts": "^5.1.0",
+    "lucide-react": "^1.8.0",
     "next": "^15.1.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-jazzicon": "^1.0.4",
+    "viem": "^2.47.10",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
+    "@tailwindcss/postcss": "^4.0.6",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
-    "@tailwindcss/postcss": "^4.0.6",
-    "tailwindcss": "^4.0.6"
+    "tailwindcss": "^4.0.6",
+    "typescript": "^5.7.3"
   }
 }

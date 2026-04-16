@@ -146,6 +146,53 @@ export const api = {
       }>('/api/trades', params),
   },
 
+  // ---- Follows ----
+  follows: {
+    list: (userAddress: string) =>
+      apiFetch<{
+        follows: any[];
+        count: number;
+      }>('/api/follows', { user_address: userAddress }),
+
+    feed: (userAddress: string, params?: { limit?: string; offset?: string }) =>
+      apiFetch<{
+        trades: any[];
+        total: number;
+        limit: number;
+        offset: number;
+      }>('/api/follows/feed', { user_address: userAddress, ...params }),
+
+    follow: async (userAddress: string, walletAddress: string, pseudonym?: string) => {
+      const url = new URL('/api/follows', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+      const res = await fetch(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_address: userAddress,
+          wallet_address: walletAddress,
+          pseudonym: pseudonym || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      return json.data;
+    },
+
+    unfollow: async (walletAddress: string, userAddress: string) => {
+      const url = new URL(
+        `/api/follows/${walletAddress}?user_address=${userAddress}`,
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      );
+      const res = await fetch(url.toString(), {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      return json.data;
+    },
+  },
+
   // ---- Intelligence ----
   intelligence: {
     consensus: (marketId: string) =>
@@ -162,6 +209,15 @@ export const api = {
         opportunities: any[];
         count: number;
       }>('/api/intelligence/arbitrage', params),
+
+    stats: () =>
+      apiFetch<{
+        active_markets: number;
+        tracked_wallets: number;
+        trades_24h: number;
+        whale_trades_24h: number;
+        volume_24h: number;
+      }>('/api/intelligence/stats'),
 
     smartMoney: (params?: {
       period?: string;
