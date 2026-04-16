@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '@rainbow-me/rainbowkit/styles.css';
 import { Providers } from '@/components/providers';
 
 export const metadata: Metadata = {
@@ -14,10 +15,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <head>
-        {/* RainbowKit CSS — loaded as static asset to bypass Tailwind v4 PostCSS */}
-        <link rel="stylesheet" href="/rainbowkit.css" />
-      </head>
       <body className="bg-gray-950 text-gray-100 min-h-screen">
         <Providers>{children}</Providers>
       </body>
