@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(node -e ':*)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(FAL_KEY=\"9670ac10-bff9-4300-8227-23dc6fd65fe3:adada625950d79fb8577d2ecc5a19a4a\" node apps/web/scripts/generate-images.mjs)",
+      "Bash(mv markets *)",
+      "Bash(mv wallets *)",
+      "Bash(mv arbitrage *)",
+      "Bash(mv page.tsx \"\\(app\\)/dashboard/page.tsx\")"
+    ]
+  }
+}
