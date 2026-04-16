@@ -1,3 +1,5 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && rm -rf node_modules apps/*/node_modules packages/*/node_modules && npm ci --no-audit --no-fund",
+  "buildCommand": "npm run build"
 }
